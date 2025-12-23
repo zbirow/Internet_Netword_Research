@@ -6,19 +6,19 @@ import webbrowser
 import os
 
 # ==========================================
-#   KONFIGURACJA WIZUALIZACJI
+#   VISUALIZATION CONFIGURATION
 # ==========================================
 
-DB_FILE = "network_map_dependencies.db" # Upewnij się, że to nazwa Twojej bazy (ta wyczyszczona)
-OUTPUT_HTML = "mapa_sieci_ultimate.html"
+DB_FILE = "network_map_dependencies.db" # Make sure this matches your database name (the cleaned one)
+OUTPUT_HTML = "network_map_ultimate.html"
 
-# CO CHCESZ WIDZIEĆ?
-SHOW_LINKS = False       # Pokaż linki HREF (nawigacja)
-SHOW_RESOURCES = True    # Pokaż zasoby SRC (zależności)
+# WHAT DO YOU WANT TO SEE?
+SHOW_LINKS = False       # Show HREF links (navigation/clicks)
+SHOW_RESOURCES = True    # Show SRC resources (dependencies/scripts)
 
-MAX_NODES = 400         
-MIN_CONNECTIONS = 2     
-BG_COLOR = "#111111"    
+MAX_NODES = 400          # Limit nodes for performance
+MIN_CONNECTIONS = 2      # Noise filter (hide nodes with only 1 connection)
+BG_COLOR = "#111111"     # Background color
 
 # ==========================================
 
@@ -31,13 +31,13 @@ def get_domain_group(hostname):
         if ext.domain == 'wordpress' or ext.domain == 'wp': return 'Wordpress'
         return ext.domain
     except:
-        return "Inne"
+        return "Other"
 
 def generate_map():
-    print(f"--- GENEROWANIE MAPY v3 (z ID) ---\nTryb: Linki={SHOW_LINKS}, Zasoby={SHOW_RESOURCES}")
+    print(f"--- GENERATING MAP v3 (with IDs) ---\nMode: Links={SHOW_LINKS}, Resources={SHOW_RESOURCES}")
     
     if not os.path.exists(DB_FILE):
-        print("Brak pliku bazy danych!")
+        print("Database file not found!")
         return
 
     conn = sqlite3.connect(DB_FILE)
@@ -48,12 +48,12 @@ def generate_map():
     if SHOW_RESOURCES: type_filters.append("2")
     
     if not type_filters:
-        print("Musisz włączyć chociaż jeden typ połączeń!")
+        print("You must enable at least one connection type!")
         return
         
     type_query_part = f"AND type IN ({','.join(type_filters)})"
 
-    # Pobieranie hostów
+    # Fetching hosts
     sql_nodes = f"""
         SELECT h.id, h.hostname, COUNT(e.source_id) + COUNT(e.target_id) as degree
         FROM hosts h
@@ -68,7 +68,7 @@ def generate_map():
     nodes_data = c.fetchall()
     
     valid_ids = {row[0] for row in nodes_data}
-    print(f"Wybrano {len(valid_ids)} kluczowych hostów.")
+    print(f"Selected {len(valid_ids)} key hosts.")
 
     net = Network(height="95vh", width="100%", bgcolor=BG_COLOR, font_color="white", select_menu=True, filter_menu=True)
     
@@ -81,7 +81,7 @@ def generate_map():
         overlap=0
     )
 
-    # --- RYSOWANIE WĘZŁÓW Z ID ---
+    # --- DRAWING NODES WITH IDs ---
     for node_id, hostname, degree in nodes_data:
         group_name = get_domain_group(hostname)
         size = 15 + (math.log(degree) * 10)
@@ -91,8 +91,8 @@ def generate_map():
             shape = "triangle"
             size = size * 0.8
 
-        # TUTAJ JEST ZMIANA - DODANIE ID DO DYMKU
-        tooltip = f"ID: {node_id}\nHost: {hostname}\nGrupa: {group_name}\nPołączeń: {degree}"
+        # CHANGED HERE - ADDED ID TO TOOLTIP
+        tooltip = f"ID: {node_id}\nHost: {hostname}\nGroup: {group_name}\nConnections: {degree}"
 
         net.add_node(
             node_id,
@@ -104,7 +104,7 @@ def generate_map():
             borderWidth=2
         )
 
-    # Rysowanie krawędzi
+    # Drawing edges
     placeholders = ','.join('?' for _ in valid_ids)
     sql_edges = f"""
         SELECT h1.hostname, h2.hostname, e.source_id, e.target_id, e.type 
@@ -118,18 +118,18 @@ def generate_map():
     
     c.execute(sql_edges, list(valid_ids) * 2)
     edges = c.fetchall()
-    print(f"Rysowanie {len(edges)} połączeń...")
+    print(f"Drawing {len(edges)} connections...")
 
     for src_name, dst_name, src_id, dst_id, type_ in edges:
         if type_ == 1: 
             color = "#4ad0ff"
             dashes = False
-            title = f"{src_name} --> linkuje do --> {dst_name}"
+            title = f"{src_name} --> links to --> {dst_name}"
             width = 1
         else: 
             color = "#ff5e5e"
             dashes = True
-            title = f"{src_name} --> pobiera zasób z --> {dst_name}"
+            title = f"{src_name} --> fetches resource from --> {dst_name}"
             width = 0.8
 
         net.add_edge(
@@ -146,7 +146,7 @@ def generate_map():
     net.show_buttons(filter_=['physics'])
     
     net.save_graph(OUTPUT_HTML)
-    print(f"Gotowe! Mapa zapisana w: {os.path.abspath(OUTPUT_HTML)}")
+    print(f"Done! Map saved to: {os.path.abspath(OUTPUT_HTML)}")
     
     try:
         webbrowser.open(OUTPUT_HTML)
