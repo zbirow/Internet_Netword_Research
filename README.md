@@ -15,6 +15,8 @@
 
 ![Network Graph Preview](https://github.com/zbirow/Internet_Netword_Research/blob/main/img/24_12_25_All.jpg)![](https://github.com/zbirow/Internet_Netword_Research/blob/main/img/24_12_25_GoogleTagManager.jpg)
 
+[**Demo Page Vizualization**](https://zbirow.github.io/Internet_Netword_Research/network_map_ultimate.html)
+
 ## ⚡ About the Project
 
 This isn't just a standard crawler. It is a research tool designed with a **Master-Worker architecture**, allowing you to map the "invisible web" (background `src` dependencies vs. navigation `href` links) with minimal resource usage.
